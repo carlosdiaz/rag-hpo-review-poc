@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HPO Review Report</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --panel: #ffffff;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #d8dee9;
+        --review: #8a5a00;
+        --review-bg: #fff6d7;
+        --ok: #176b4d;
+        --ok-bg: #dcf5e9;
+        --quiet: #475467;
+        --quiet-bg: #eef2f7;
+        --bad: #9f1f1f;
+        --bad-bg: #fde2e2;
+        --term: #174ea6;
+        --term-bg: #e8f0fe;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 14px;
+      }
+
+      header {
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        padding: 20px 28px 16px;
+      }
+
+      h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .path {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      main {
+        padding: 20px 28px 32px;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .metric {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+
+      .metric span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        font-size: 26px;
+      }
+
+      .table-wrap {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1100px;
+      }
+
+      th, td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f8fafc;
+        color: #344054;
+        font-size: 12px;
+        position: sticky;
+        top: 0;
+      }
+
+      tr:last-child td { border-bottom: 0; }
+
+      .case-id {
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .terms {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 120px;
+      }
+
+      .term {
+        background: var(--term-bg);
+        color: var(--term);
+        border-radius: 999px;
+        padding: 3px 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .empty {
+        color: var(--muted);
+      }
+
+      .status {
+        border-radius: 999px;
+        display: inline-block;
+        font-weight: 700;
+        padding: 4px 9px;
+        white-space: nowrap;
+      }
+
+      .needs_review { background: var(--review-bg); color: var(--review); }
+      .matched { background: var(--ok-bg); color: var(--ok); }
+      .no_terms_found, .no_meaningful_note { background: var(--quiet-bg); color: var(--quiet); }
+      .extraction_failed { background: var(--bad-bg); color: var(--bad); }
+
+      .notes {
+        color: #344054;
+        min-width: 220px;
+      }
+    </style>
+  </head>
+  <body>
+    {% macro term_list(value) -%}
+      {% if value %}
+        <div class="terms">
+          {% for term in value.split(";") %}
+            <span class="term">{{ term }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <span class="empty">None</span>
+      {% endif %}
+    {%- endmacro %}
+
+    <header>
+      <h1>HPO Review Report</h1>
+      <div class="path">Source: {{ report_path }}</div>
+    </header>
+
+    <main>
+      <section class="summary" aria-label="Review summary">
+        <div class="metric"><span>Total Cases</span><strong>{{ summary.total }}</strong></div>
+        <div class="metric"><span>Needs Review</span><strong>{{ summary.needs_review }}</strong></div>
+        <div class="metric"><span>Fully Matched</span><strong>{{ summary.matched }}</strong></div>
+        <div class="metric"><span>No Terms</span><strong>{{ summary.no_terms_found }}</strong></div>
+        <div class="metric"><span>No Note</span><strong>{{ summary.no_meaningful_note }}</strong></div>
+        <div class="metric"><span>Failures</span><strong>{{ summary.extraction_failed }}</strong></div>
+      </section>
+
+      <section class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Case</th>
+              <th>Status</th>
+              <th>Manual HPO</th>
+              <th>Suggested HPO</th>
+              <th>Matched</th>
+              <th>Model-only</th>
+              <th>No Note</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+            <tr>
+              <td class="case-id">{{ row.case_id }}</td>
+              <td><span class="status {{ row.review_status }}">{{ row.review_status }}</span></td>
+              <td>{{ term_list(row.existing_hpo_terms) }}</td>
+              <td>{{ term_list(row.suggested_hpo_terms) }}</td>
+              <td>{{ term_list(row.matched_terms) }}</td>
+              <td>{{ term_list(row.missing_from_manual_entry) }}</td>
+              <td>{{ row.no_meaningful_note }}</td>
+              <td class="notes">{{ row.notes }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="empty">No review rows found. Run the pipeline first.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>
