@@ -1,0 +1,19 @@
+llm:
+  provider: mock
+  api_key_env: LLM_API_KEY
+  openai_api_key_env: OPENAI_API_KEY
+  api_base_url_env: RAG_HPO_API_BASE_URL
+  openai_api_base_url: https://api.openai.com/v1
+  model_name: gpt-5.5
+  timeout_seconds: 30
+  log_prompts: false
+  use_mock: true
+
+paths:
+  input_csv: data/sample_cases.csv
+  output_csv: output/hpo_review.csv
+
+review:
+  min_note_length: 20
+  require_suggestions_for_review: false
+  confidence_threshold: 0.70
